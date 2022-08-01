@@ -1,6 +1,5 @@
 package http
 
-// TODO: Add custom header for user agent so websites can see where the requests are coming from. Should probably include a short code to map to a check so it can be traced back to a user.
 // TODO: Add custom headers
 // TODO: Customize Content-Type (is it worth doing if the user can add custom headers)
 // TODO: Create a list of warnings and errors
@@ -23,6 +22,8 @@ import (
 	h "net/http"
 )
 
+const DefaultUserAgent = "github.com/sfreiberg/probes"
+
 // HTTPRequest is a HTTPRequest check
 type HTTPRequest struct {
 	// URL to check
@@ -40,6 +41,10 @@ type HTTPRequest struct {
 	BasicAuthUsername string
 
 	BasicAuthPassword string
+
+	// UserAgent is used to set a custom UserAgent. If left unset it will
+	// default to DefaultUserAgent.
+	UserAgent string
 }
 
 func (r *HTTPRequest) setBasicAuth() bool {
@@ -89,6 +94,12 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 	if req.setBasicAuth() {
 		r.SetBasicAuth(req.BasicAuthUsername, req.BasicAuthPassword)
 	}
+
+	userAgent := DefaultUserAgent
+	if req.UserAgent != "" {
+		userAgent = req.UserAgent
+	}
+	r.Header.Set("User-Agent", userAgent)
 
 	res.Start = time.Now()
 	resp, err := client.Do(r)
