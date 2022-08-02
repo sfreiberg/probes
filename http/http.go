@@ -1,6 +1,5 @@
 package http
 
-// TODO: Add custom headers
 // TODO: Create a list of warnings and errors
 // TODO: Handle connection refused
 
@@ -47,6 +46,9 @@ type HTTPRequest struct {
 
 	// ContentType specifies a specific content-type for the request.
 	ContentType string
+
+	// CustomHeader allows specifying arbitrary headers.
+	CustomHeader h.Header
 }
 
 func (r *HTTPRequest) setBasicAuth() bool {
@@ -92,6 +94,7 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 	if err != nil {
 		return res, err
 	}
+	r.Header = req.CustomHeader
 
 	if req.setBasicAuth() {
 		r.SetBasicAuth(req.BasicAuthUsername, req.BasicAuthPassword)
