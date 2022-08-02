@@ -1,7 +1,6 @@
 package http
 
 // TODO: Add custom headers
-// TODO: Customize Content-Type (is it worth doing if the user can add custom headers)
 // TODO: Create a list of warnings and errors
 // TODO: Handle connection refused
 
@@ -45,6 +44,9 @@ type HTTPRequest struct {
 	// UserAgent is used to set a custom UserAgent. If left unset it will
 	// default to DefaultUserAgent.
 	UserAgent string
+
+	// ContentType specifies a specific content-type for the request.
+	ContentType string
 }
 
 func (r *HTTPRequest) setBasicAuth() bool {
@@ -100,6 +102,10 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 		userAgent = req.UserAgent
 	}
 	r.Header.Set("User-Agent", userAgent)
+
+	if req.ContentType != "" {
+		r.Header.Set("Content-Type", req.ContentType)
+	}
 
 	res.Start = time.Now()
 	resp, err := client.Do(r)
