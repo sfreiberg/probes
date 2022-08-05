@@ -96,6 +96,9 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 	}
 
 	res.Start = time.Now()
+	defer func() {
+		res.End = time.Now()
+	}()
 	resp, err := client.Do(r)
 	if err != nil {
 		return res, err
@@ -106,8 +109,6 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 	if err != nil {
 		return res, err
 	}
-
-	res.End = time.Now()
 
 	res.ContentLen = len(body)
 	res.Compression = resp.Uncompressed
