@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-
-	h "net/http"
 )
 
 const DefaultUserAgent = "github.com/sfreiberg/probes"
@@ -48,7 +46,7 @@ type HTTPRequest struct {
 	ContentType string
 
 	// CustomHeader allows specifying arbitrary headers.
-	CustomHeader h.Header
+	CustomHeader http.Header
 }
 
 func (r *HTTPRequest) setBasicAuth() bool {
@@ -57,7 +55,7 @@ func (r *HTTPRequest) setBasicAuth() bool {
 
 func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 	if req.CustomHeader == nil {
-		req.CustomHeader = h.Header{}
+		req.CustomHeader = http.Header{}
 	}
 	res := &HTTPResponse{}
 
@@ -77,7 +75,7 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 
 	ctx = httptrace.WithClientTrace(ctx, trace)
 
-	r, err := h.NewRequestWithContext(ctx, req.Method, req.URL, reqBody)
+	r, err := http.NewRequestWithContext(ctx, req.Method, req.URL, reqBody)
 	if err != nil {
 		return res, err
 	}
@@ -193,7 +191,7 @@ func newClientTrace(res *HTTPResponse) *httptrace.ClientTrace {
 	}
 }
 
-func tlsVersion(resp *h.Response) string {
+func tlsVersion(resp *http.Response) string {
 	switch resp.TLS.Version {
 	case tls.VersionSSL30:
 		return "SSL 3.0"
