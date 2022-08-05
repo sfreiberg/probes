@@ -56,6 +56,9 @@ func (r *HTTPRequest) setBasicAuth() bool {
 }
 
 func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
+	if req.CustomHeader == nil {
+		req.CustomHeader = h.Header{}
+	}
 	res := &HTTPResponse{}
 
 	client, err := newClient()
@@ -70,23 +73,7 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 		reqBody = strings.NewReader(req.Body)
 	}
 
-	trace := &httptrace.ClientTrace{
-		DNSStart: func(httptrace.DNSStartInfo) {
-			res.DNSStart = time.Now()
-		},
-		DNSDone: func(httptrace.DNSDoneInfo) {
-			res.DNSComplete = time.Now()
-		},
-		ConnectDone: func(string, string, error) {
-			res.TCPConnComplete = time.Now()
-		},
-		TLSHandshakeDone: func(tls.ConnectionState, error) {
-			res.TLSHandshakeComplete = time.Now()
-		},
-		GotFirstResponseByte: func() {
-			res.FirstByte = time.Now()
-		},
-	}
+	trace := newClientTrace(res)
 
 	ctx = httptrace.WithClientTrace(ctx, trace)
 
@@ -145,18 +132,7 @@ func HTTP(ctx context.Context, req *HTTPRequest) (*HTTPResponse, error) {
 		res.TLSCertStart = &start
 		res.TLSCertEnd = &end
 
-		switch resp.TLS.Version {
-		case tls.VersionSSL30:
-			res.TLSVersion = "SSL 3.0"
-		case tls.VersionTLS10:
-			res.TLSVersion = "TLS 1.0"
-		case tls.VersionTLS11:
-			res.TLSVersion = "TLS 1.1"
-		case tls.VersionTLS12:
-			res.TLSVersion = "TLS 1.2"
-		case tls.VersionTLS13:
-			res.TLSVersion = "TLS 1.3"
-		}
+		res.TLSVersion = tlsVersion(resp)
 
 		if resp.TLS.PeerCertificates[0].VerifyHostname(r.URL.Host) == nil {
 			res.TLSValidHostname = true
@@ -195,6 +171,43 @@ func newClient() (*http.Client, error) {
 	}
 
 	return client, nil
+}
+
+func newClientTrace(res *HTTPResponse) *httptrace.ClientTrace {
+	return &httptrace.ClientTrace{
+		DNSStart: func(httptrace.DNSStartInfo) {
+			res.DNSStart = time.Now()
+		},
+		DNSDone: func(httptrace.DNSDoneInfo) {
+			res.DNSComplete = time.Now()
+		},
+		ConnectDone: func(string, string, error) {
+			res.TCPConnComplete = time.Now()
+		},
+		TLSHandshakeDone: func(tls.ConnectionState, error) {
+			res.TLSHandshakeComplete = time.Now()
+		},
+		GotFirstResponseByte: func() {
+			res.FirstByte = time.Now()
+		},
+	}
+}
+
+func tlsVersion(resp *h.Response) string {
+	switch resp.TLS.Version {
+	case tls.VersionSSL30:
+		return "SSL 3.0"
+	case tls.VersionTLS10:
+		return "TLS 1.0"
+	case tls.VersionTLS11:
+		return "TLS 1.1"
+	case tls.VersionTLS12:
+		return "TLS 1.2"
+	case tls.VersionTLS13:
+		return "TLS 1.3"
+	default:
+		return "unknown"
+	}
 }
 
 func certNotBefore(certs []*x509.Certificate) time.Time {
